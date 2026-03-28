@@ -1,0 +1,101 @@
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+// Blynk credentials
+char auth[] = "YOUR_BLYNK_AUTH_TOKEN";
+char ssid[] = "YOUR_WIFI_NAME";
+char pass[] = "YOUR_WIFI_PASSWORD";
+
+// Pin Definitions
+#define METAL_SENSOR 34
+#define GAS_SENSOR   35
+#define BUZZER       23
+
+// Motor Driver Pins (L298N)
+#define IN1 18
+#define IN2 19
+#define IN3 21
+#define IN4 22
+
+int metalValue = 0;
+int gasValue = 0;
+
+// Movement Functions
+void forward() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void backward() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void left() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void right() {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void stopRobot() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
+
+// Blynk Controls (Buttons)
+BLYNK_WRITE(V0) { if (param.asInt()) forward(); else stopRobot(); }
+BLYNK_WRITE(V1) { if (param.asInt()) backward(); else stopRobot(); }
+BLYNK_WRITE(V2) { if (param.asInt()) left(); else stopRobot(); }
+BLYNK_WRITE(V3) { if (param.asInt()) right(); else stopRobot(); }
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(METAL_SENSOR, INPUT);
+  pinMode(GAS_SENSOR, INPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  Blynk.begin(auth, ssid, pass);
+}
+
+void loop() {
+  Blynk.run();
+
+  metalValue = analogRead(METAL_SENSOR);
+  gasValue = analogRead(GAS_SENSOR);
+
+  Serial.print("Metal: ");
+  Serial.print(metalValue);
+  Serial.print(" | Gas: ");
+  Serial.println(gasValue);
+
+  // Threshold values (adjust based on testing)
+  if (metalValue > 2000 || gasValue > 2000) {
+    digitalWrite(BUZZER, HIGH);
+    Blynk.logEvent("alert", "Danger Detected!");
+  } else {
+    digitalWrite(BUZZER, LOW);
+  }
+
+  delay(500);
+}
